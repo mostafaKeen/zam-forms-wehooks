@@ -1,0 +1,2 @@
+[2026-03-25 07:46:04] Forward Result: 400
+[2026-03-25 08:03:39] LeadConnector: 400 | Bitrix: 200
