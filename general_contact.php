@@ -1,7 +1,7 @@
 <?php
 /**
- * Brochure Download Webhook Implementation
- * Corrected version for "Download Brochures" form.
+ * General Contact Webhook Implementation
+ * (Previously brochure_download.php)
  */
 
 // 1. Capture Data
@@ -24,13 +24,13 @@ if (is_null($data)) {
     parse_str($rawData, $data);
 }
 
-// 2. Local Logging (Store in brochure_download.json)
+// 2. Local Logging (Store in general_contact.json)
 $logEntry = json_encode([
     'timestamp' => date('Y-m-d H:i:s'),
     'data' => $data ?: $rawData
 ]) . PHP_EOL;
 
-file_put_contents(__DIR__ . '/brochure_download.json', $logEntry, FILE_APPEND);
+file_put_contents(__DIR__ . '/general_contact.json', $logEntry, FILE_APPEND);
 
 // 3. Forward to LeadConnector
 $targetUrl = 'https://services.leadconnectorhq.com/hooks/rszL6rWgEgcbEK6oPE0K/webhook-trigger/7U9XZmdut4iPJB35eOqF';
@@ -54,14 +54,14 @@ $bitrixUrl = 'https://zamprime.bitrix24.com/rest/16/bfumzpzx61oc5s6o/crm.lead.ad
 $formFields = $data['data']['fields'] ?? $data['fields'] ?? [];
 $formMeta = $data['data']['meta'] ?? $data['meta'] ?? [];
 
-$name = $formFields['name']['value'] ?? 'Brochure Lead';
-$email = $formFields['email']['value'] ?? '';
-$phone = $formFields['field_2a508ef']['value'] ?? '';
-$formName = $formFields['field_76755c8']['value'] ?? 'Property Brochure Form';
+$name = $formFields['name']['value'] ?? 'General Contact Lead';
+$phone = $formFields['email']['value'] ?? '';    // form ID 'email' is actually Phone
+$email = $formFields['field_c502fdc']['value'] ?? ''; // form ID 'field_c502fdc' is Email
+$message = $formFields['message']['value'] ?? '';
 
 // Collect unmapped fields into meta data string
 $metaLines = [];
-$mappedKeys = ['name', 'email', 'field_2a508ef', 'field_76755c8', 'field_57072db'];
+$mappedKeys = ['name', 'email', 'field_c502fdc', 'message'];
 
 foreach ($formFields as $id => $field) {
     if (!in_array($id, $mappedKeys) && !empty($field['value'])) {
@@ -82,12 +82,12 @@ $metaDataString = implode("\n", $metaLines);
 
 $bitrixFields = [
     'fields' => [
-        'TITLE' => 'Brochure Download: ' . $name,
+        'TITLE' => 'General Contact: ' . $name,
         'NAME' => $name,
-        'COMMENTS' => "Requested via: $formName",
+        'COMMENTS' => $message,
         'SOURCE_ID' => 'CALLBACK',            // "Zamprime Website"
         'ASSIGNED_BY_ID' => 1,                // Default ID (RE/MAX ZAM)
-        'UF_CRM_1773862147183' => '21072',    // Subsource: "Brochure Download"
+        'UF_CRM_1773862147183' => '21070',    // Subsource: "General Contact"
         'UF_CRM_1774359455' => $metaDataString, // meta data field
     ],
     'params' => ['REGISTER_SONET_EVENT' => 'Y']
@@ -111,7 +111,7 @@ curl_close($chBitrix);
 
 // 5. Log Results
 $logStatus = date('[Y-m-d H:i:s] ') . "LeadConnector: $lcHttpCode | Bitrix: $bitrixHttpCode | Assigned To: 1";
-file_put_contents(__DIR__ . '/brochure_download_forward_log.txt', $logStatus . PHP_EOL, FILE_APPEND);
+file_put_contents(__DIR__ . '/general_contact_forward_log.txt', $logStatus . PHP_EOL, FILE_APPEND);
 
 // Response
 http_response_code(200);

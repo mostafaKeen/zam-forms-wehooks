@@ -1,0 +1,5 @@
+# Ignore form data and log files
+*.json
+*_forward_log.txt
+*forwarding_log.txt
+*_log.txt
