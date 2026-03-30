@@ -1,2 +1,0 @@
-[2026-03-25 09:39:47] LeadConnector Forward Status: 400
-[2026-03-25 09:42:24] LeadConnector: 400 | Bitrix: 200
