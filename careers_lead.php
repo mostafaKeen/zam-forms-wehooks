@@ -9,11 +9,6 @@
 // 1. Capture Data
 $rawData = file_get_contents('php://input');
 
-// Reset any PHP caching
-if (function_exists('opcache_reset')) {
-    opcache_reset();
-}
-
 // Fallback to $_POST if raw input is empty (for standard form-data)
 if (empty($rawData) && !empty($_POST)) {
     $rawData = json_encode($_POST);
@@ -102,6 +97,11 @@ if (!empty($phone)) {
 }
 if (!empty($email)) {
     $bitrixFields['fields']['UF_CRM_8_1772192889128'] = $email;
+}
+
+// LinkedIn Field
+if (!empty($formFields['field_2a508ef']['value'])) {
+    $bitrixFields['fields']['UF_CRM_8_1774869698'] = $formFields['field_2a508ef']['value'];
 }
 
 
