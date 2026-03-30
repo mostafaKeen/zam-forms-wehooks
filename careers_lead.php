@@ -93,14 +93,13 @@ $bitrixFields = [
 ];
 
 if (!empty($phone)) {
-    $bitrixFields['fields']['ufCrm8_1772192069412'] = $phone;
-    $bitrixFields['fields']['ufCrm8_177219206942'] = $phone; // Fallback
+    $bitrixFields['fields']['UF_CRM_8_1772192069412'] = $phone;
 }
 if (!empty($email)) {
-    $bitrixFields['fields']['ufCrm8_1772192889128'] = $email;
+    $bitrixFields['fields']['UF_CRM_8_1772192889128'] = $email;
 }
 if (!empty($metaDataString)) {
-    $bitrixFields['fields']['ufCrm8_1774869739'] = $metaDataString;
+    $bitrixFields['fields']['UF_CRM_8_1774869739'] = $metaDataString;
 }
 
 
@@ -111,7 +110,7 @@ if (!empty($formFields['field_ffe901d']['value']) && filter_var($formFields['fie
     if ($fileContent) {
         $fileName = basename(parse_url($fileUrl, PHP_URL_PATH));
         if (!strpos($fileName, '.')) $fileName .= '.jpg';
-        $bitrixFields['fields']['ufCrm8_1772193399534'] = [
+        $bitrixFields['fields']['UF_CRM_8_1772193399534'] = [
             $fileName, base64_encode($fileContent)
         ];
     }

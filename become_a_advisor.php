@@ -92,20 +92,19 @@ $bitrixFields = [
 ];
 
 if (!empty($phone)) {
-    $bitrixFields['fields']['ufCrm8_1772192069412'] = $phone;
-    $bitrixFields['fields']['ufCrm8_177219206942'] = $phone; // Fallback for either typo
+    $bitrixFields['fields']['UF_CRM_8_1772192069412'] = $phone;
 }
 if (!empty($email)) {
-    $bitrixFields['fields']['ufCrm8_1772192889128'] = $email;
+    $bitrixFields['fields']['UF_CRM_8_1772192889128'] = $email;
 }
 if (!empty($metaDataString)) {
-    $bitrixFields['fields']['ufCrm8_1774869739'] = $metaDataString;
+    $bitrixFields['fields']['UF_CRM_8_1774869739'] = $metaDataString;
 }
 
 // Handle File Attachments
 $fileFieldsMapping = [
-    'field_20e883f' => 'ufCrm8_1772193399534', // map to CV
-    'field_cb7c0d0' => 'ufCrm8_1772193207046'  // map to Photo
+    'field_20e883f' => 'UF_CRM_8_1772193399534', // map to CV
+    'field_cb7c0d0' => 'UF_CRM_8_1772193207046'  // map to Photo
 ];
 
 foreach ($fileFieldsMapping as $fId => $crmField) {
