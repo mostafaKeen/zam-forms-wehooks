@@ -9,6 +9,11 @@
 // 1. Capture Data
 $rawData = file_get_contents('php://input');
 
+// Force reset any server-side PHP caching
+if (function_exists('opcache_reset')) {
+    opcache_reset();
+}
+
 // Fallback to $_POST if raw input is empty (for standard form-data)
 if (empty($rawData) && !empty($_POST)) {
     $rawData = json_encode($_POST);
@@ -118,5 +123,6 @@ echo json_encode([
     'status' => 'success',
     'leadconnector' => $httpCode,
     'bitrix' => $bitrixCode,
+    'debug_entityTypeId' => 1054,
     'bitrix_response' => $bitrixData
 ]);
