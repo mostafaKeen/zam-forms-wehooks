@@ -97,9 +97,6 @@ if (!empty($phone)) {
 if (!empty($email)) {
     $bitrixFields['fields']['UF_CRM_8_1772192889128'] = $email;
 }
-if (!empty($metaDataString)) {
-    $bitrixFields['fields']['UF_CRM_8_1774869739'] = $metaDataString;
-}
 
 // Handle File Attachments
 $fileFieldsMapping = [
