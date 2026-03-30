@@ -84,18 +84,19 @@ $metaDataString = implode("\n", $metaLines);
 $bitrixFields = [
     'entityTypeId' => 1038,
     'fields' => [
-        'TITLE' => 'Become an Advisor: ' . $name,
-        'SOURCE_ID' => 'CALLBACK',            // "Zamprime Website"
-        'ASSIGNED_BY_ID' => 28,               // Sarah
+        'title' => 'Become an Advisor: ' . $name,
+        'sourceId' => 'CALLBACK',            // "Zamprime Website"
+        'assignedById' => 28,               // Sarah
+        'sourceDescription' => trim($metaDataString),
     ],
     'params' => ['REGISTER_SONET_EVENT' => 'Y']
 ];
 
 if (!empty($phone)) {
-    $bitrixFields['fields']['UF_CRM_8_1772192069412'] = $phone;
+    $bitrixFields['fields']['ufCrm8_1772192069412'] = $phone;
 }
 if (!empty($email)) {
-    $bitrixFields['fields']['UF_CRM_8_1772192889128'] = $email;
+    $bitrixFields['fields']['ufCrm8_1772192889128'] = $email;
 }
 
 // Additional fields to metaDataString if they are not explicitly mapped

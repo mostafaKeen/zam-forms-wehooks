@@ -85,23 +85,24 @@ $metaDataString = implode("\n", $metaLines);
 $bitrixFields = [
     'entityTypeId' => 1038,
     'fields' => [
-        'TITLE' => 'Careers Lead: ' . $name,
-        'SOURCE_ID' => 'CALLBACK',            // "Zamprime Website"
-        'ASSIGNED_BY_ID' => 28,               // Sarah
+        'title' => 'Careers Lead: ' . $name,
+        'sourceId' => 'CALLBACK',            // "Zamprime Website"
+        'assignedById' => 28,               // Sarah
+        'sourceDescription' => trim($metaDataString),
     ],
     'params' => ['REGISTER_SONET_EVENT' => 'Y']
 ];
 
 if (!empty($phone)) {
-    $bitrixFields['fields']['UF_CRM_8_1772192069412'] = $phone;
+    $bitrixFields['fields']['ufCrm8_1772192069412'] = $phone;
 }
 if (!empty($email)) {
-    $bitrixFields['fields']['UF_CRM_8_1772192889128'] = $email;
+    $bitrixFields['fields']['ufCrm8_1772192889128'] = $email;
 }
 
 // LinkedIn Field
 if (!empty($formFields['field_2a508ef']['value'])) {
-    $bitrixFields['fields']['UF_CRM_8_1774869698'] = $formFields['field_2a508ef']['value'];
+    $bitrixFields['fields']['ufCrm8_1774869698'] = $formFields['field_2a508ef']['value'];
 }
 
 
@@ -112,7 +113,7 @@ if (!empty($formFields['field_ffe901d']['value']) && filter_var($formFields['fie
     if ($fileContent) {
         $fileName = basename(parse_url($fileUrl, PHP_URL_PATH));
         if (!strpos($fileName, '.')) $fileName .= '.jpg';
-        $bitrixFields['fields']['UF_CRM_8_1772193399534'] = [
+        $bitrixFields['fields']['ufCrm8_1772193399534'] = [
             $fileName, base64_encode($fileContent)
         ];
     }
