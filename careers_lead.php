@@ -50,7 +50,7 @@ $lcHttpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
 curl_close($ch);
 
 // 4. Create Lead in Bitrix24
-$bitrixUrl = 'https://zamprime.bitrix24.com/rest/16/bfumzpzx61oc5s6o/crm.lead.add.json';
+$bitrixUrl = 'https://zamprime.bitrix24.com/rest/16/bfumzpzx61oc5s6o/crm.item.add.json';
 
 // Mapping incoming data
 $formFields = $data['data']['fields'] ?? $data['fields'] ?? [];
@@ -63,7 +63,7 @@ $message = $formFields['message']['value'] ?? '';
 
 // Collect unmapped fields into meta data string
 $metaLines = [];
-$mappedKeys = ['name', 'email', 'field_7bd6ec1', 'message', 'field_ffe901d'];
+$mappedKeys = ['name', 'email', 'field_7bd6ec1', 'field_ffe901d']; // message goes into metadata
 
 foreach ($formFields as $id => $field) {
     if (!in_array($id, $mappedKeys) && !empty($field['value'])) {
@@ -83,24 +83,26 @@ foreach ($formMeta as $key => $meta) {
 $metaDataString = implode("\n", $metaLines);
 
 $bitrixFields = [
+    'entityTypeId' => 1038,
     'fields' => [
         'TITLE' => 'Careers Lead: ' . $name,
-        'NAME' => $name,
-        'COMMENTS' => $message,
         'SOURCE_ID' => 'CALLBACK',            // "Zamprime Website"
-        'ASSIGNED_BY_ID' => 1,                // Default ID (RE/MAX ZAM)
-        'UF_CRM_1773862147183' => '21068',    // Subsource: "Careers Lead"
-        'UF_CRM_1774359455' => $metaDataString, // meta data field
+        'ASSIGNED_BY_ID' => 28,               // Sarah
     ],
     'params' => ['REGISTER_SONET_EVENT' => 'Y']
 ];
 
 if (!empty($phone)) {
-    $bitrixFields['fields']['PHONE'] = [['VALUE' => $phone, 'VALUE_TYPE' => 'WORK']];
+    $bitrixFields['fields']['ufCrm8_1772192069412'] = $phone;
+    $bitrixFields['fields']['ufCrm8_177219206942'] = $phone; // Fallback
 }
 if (!empty($email)) {
-    $bitrixFields['fields']['EMAIL'] = [['VALUE' => $email, 'VALUE_TYPE' => 'WORK']];
+    $bitrixFields['fields']['ufCrm8_1772192889128'] = $email;
 }
+if (!empty($metaDataString)) {
+    $bitrixFields['fields']['ufCrm8_1774869739'] = $metaDataString;
+}
+
 
 // Handle File Attachments
 if (!empty($formFields['field_ffe901d']['value']) && filter_var($formFields['field_ffe901d']['value'], FILTER_VALIDATE_URL)) {
@@ -109,8 +111,8 @@ if (!empty($formFields['field_ffe901d']['value']) && filter_var($formFields['fie
     if ($fileContent) {
         $fileName = basename(parse_url($fileUrl, PHP_URL_PATH));
         if (!strpos($fileName, '.')) $fileName .= '.jpg';
-        $bitrixFields['fields']['UF_CRM_1774358489'] = [
-            'fileData' => [$fileName, base64_encode($fileContent)]
+        $bitrixFields['fields']['ufCrm8_1772193399534'] = [
+            $fileName, base64_encode($fileContent)
         ];
     }
 }
@@ -125,7 +127,7 @@ $bitrixHttpCode = curl_getinfo($chBitrix, CURLINFO_HTTP_CODE);
 curl_close($chBitrix);
 
 // 5. Log Results
-$logStatus = date('[Y-m-d H:i:s] ') . "LeadConnector: $lcHttpCode | Bitrix: $bitrixHttpCode | Assigned To: 1";
+$logStatus = date('[Y-m-d H:i:s] ') . "LeadConnector: $lcHttpCode | Bitrix: $bitrixResponse | Assigned To: 28";
 file_put_contents(__DIR__ . '/careers_lead_forward_log.txt', $logStatus . PHP_EOL, FILE_APPEND);
 
 // Response
@@ -133,5 +135,6 @@ http_response_code(200);
 echo json_encode([
     'status' => 'success',
     'leadconnector' => $lcHttpCode,
-    'bitrix' => $bitrixHttpCode
+    'bitrix' => $bitrixHttpCode,
+    'bitrix_response' => json_decode($bitrixResponse, true)
 ]);
