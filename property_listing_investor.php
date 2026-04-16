@@ -151,10 +151,10 @@ curl_close($chBitrix);
 $logStatus = date('[Y-m-d H:i:s] ') . "Bitrix: $bitrixHttpCode | Assigned To: $responsibleId ($responsibleName)";
 file_put_contents(__DIR__ . '/property_listing_investor_forward_log.txt', $logStatus . PHP_EOL, FILE_APPEND);
 
-// Response
+// Response: Always return 200 success for Elementor
+header('Content-Type: application/json');
 http_response_code(200);
 echo json_encode([
     'status' => 'success',
-    'bitrix' => $bitrixHttpCode,
-    'assigned_to' => $responsibleId
+    'message' => 'Data received'
 ]);

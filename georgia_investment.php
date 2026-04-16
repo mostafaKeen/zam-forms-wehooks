@@ -86,4 +86,9 @@ $logStatus = date('[Y-m-d H:i:s] ') . "Bitrix Status: $bitrixCode";
 file_put_contents(__DIR__ . '/georgia_investment_forward_log.txt', $logStatus . PHP_EOL, FILE_APPEND);
 
 // Respond to the sender
-echo "Data received and processed successfully.";
+header('Content-Type: application/json');
+http_response_code(200);
+echo json_encode([
+    'status' => 'success',
+    'message' => 'Data received'
+]);

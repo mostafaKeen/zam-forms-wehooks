@@ -119,18 +119,10 @@ $isSuccess = ($bitrixHttpCode < 400 && (isset($bitrixResult['result']) || isset(
 $logStatus = date('[Y-m-d H:i:s] ') . "LeadConnector: $lcHttpCode | Bitrix: " . ($isSuccess ? "SUCCESS" : "FAILED") . " | Response: $bitrixResponse";
 file_put_contents(__DIR__ . '/buyers_guide_download_forward_log.txt', $logStatus . PHP_EOL, FILE_APPEND);
 
-// Response
-if ($isSuccess) {
-    http_response_code(200);
-    $status = 'success';
-} else {
-    http_response_code(500);
-    $status = 'error';
-}
-
+// Response: Always return 200 success for Elementor
+header('Content-Type: application/json');
+http_response_code(200);
 echo json_encode([
-    'status' => $status,
-    'bitrix_status' => $bitrixHttpCode,
-    'bitrix_response' => $bitrixResult,
-    'leadconnector' => $lcHttpCode
+    'status' => 'success',
+    'message' => 'Data received'
 ]);

@@ -97,10 +97,10 @@ $forwardLog = date('[Y-m-d H:i:s] ') . "Make: $makeCode | Bitrix: $bitrixCode | 
 if ($bitrixError) $forwardLog .= " | Bitrix Error: $bitrixError";
 file_put_contents(__DIR__ . '/forwarding_log.txt', $forwardLog . PHP_EOL, FILE_APPEND);
 
-// Respond to the sender
-if ($makeCode < 400 && $bitrixCode < 400) {
-    echo "Data processed successfully.";
-} else {
-    http_response_code(500);
-    echo "Processing completed with status - Make: $makeCode, Bitrix: $bitrixCode";
-}
+// Response: Always return 200 success for Elementor
+header('Content-Type: application/json');
+http_response_code(200);
+echo json_encode([
+    'status' => 'success',
+    'message' => 'Data received'
+]);
