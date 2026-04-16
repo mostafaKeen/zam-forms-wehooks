@@ -34,7 +34,9 @@ $logEntry = json_encode([
 
 file_put_contents(__DIR__ . '/dubai_real_estate_guide_download.json', $logEntry, FILE_APPEND);
 
-// 3. Forward to LeadConnector
+// 3. Forward to LeadConnector (DISABLED)
+$lcHttpCode = 'Disabled';
+/*
 $targetUrl = 'https://services.leadconnectorhq.com/hooks/rszL6rWgEgcbEK6oPE0K/webhook-trigger/hQfGrE3G9DeuAfvQMfVC';
 
 $ch = curl_init($targetUrl);
@@ -48,6 +50,7 @@ curl_setopt($ch, CURLOPT_HTTPHEADER, [
 $lcResponse = curl_exec($ch);
 $lcHttpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
 curl_close($ch);
+*/
 
 // 4. Create Lead in Bitrix24
 $bitrixUrl = 'https://zamprime.bitrix24.com/rest/16/bfumzpzx61oc5s6o/crm.lead.add.json';
@@ -110,13 +113,24 @@ $bitrixHttpCode = curl_getinfo($chBitrix, CURLINFO_HTTP_CODE);
 curl_close($chBitrix);
 
 // 5. Log Results
-$logStatus = date('[Y-m-d H:i:s] ') . "LeadConnector: $lcHttpCode | Bitrix: $bitrixHttpCode | Assigned To: 1";
+$bitrixResult = json_decode($bitrixResponse, true);
+$isSuccess = ($bitrixHttpCode < 400 && (isset($bitrixResult['result']) || isset($bitrixResult['id'])));
+
+$logStatus = date('[Y-m-d H:i:s] ') . "LeadConnector: $lcHttpCode | Bitrix: " . ($isSuccess ? "SUCCESS" : "FAILED") . " | Response: $bitrixResponse";
 file_put_contents(__DIR__ . '/dubai_real_estate_guide_download_forward_log.txt', $logStatus . PHP_EOL, FILE_APPEND);
 
 // Response
-http_response_code(200);
+if ($isSuccess) {
+    http_response_code(200);
+    $status = 'success';
+} else {
+    http_response_code(500);
+    $status = 'error';
+}
+
 echo json_encode([
-    'status' => 'success',
-    'leadconnector' => $lcHttpCode,
-    'bitrix' => $bitrixHttpCode
+    'status' => $status,
+    'bitrix_status' => $bitrixHttpCode,
+    'bitrix_response' => $bitrixResult,
+    'leadconnector' => $lcHttpCode
 ]);

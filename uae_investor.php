@@ -93,7 +93,9 @@ $bitrixResponse = curl_exec($chBitrix);
 $bitrixCode = curl_getinfo($chBitrix, CURLINFO_HTTP_CODE);
 curl_close($chBitrix);
 
-// 4. Forward to LeadConnector
+// 4. Forward to LeadConnector (DISABLED)
+$httpCode = 'Disabled';
+/*
 $targetUrl = 'https://services.leadconnectorhq.com/hooks/rszL6rWgEgcbEK6oPE0K/webhook-trigger/ie8zM9uhsIl2O54gMORo';
 
 $ch = curl_init($targetUrl);
@@ -107,15 +109,27 @@ curl_setopt($ch, CURLOPT_HTTPHEADER, [
 $response = curl_exec($ch);
 $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
 curl_close($ch);
+*/
 
-// Log the results
-$forwardLog = date('[Y-m-d H:i:s] ') . "Bitrix: $bitrixCode | LeadConnector: $httpCode | Assigned To: 1" . PHP_EOL;
+// 5. Log Results
+$bitrixResult = json_decode($bitrixResponse, true);
+$isSuccess = ($bitrixCode < 400 && (isset($bitrixResult['result']) || isset($bitrixResult['id'])));
+
+$forwardLog = date('[Y-m-d H:i:s] ') . "Bitrix: " . ($isSuccess ? "SUCCESS" : "FAILED") . " | LeadConnector: $httpCode | Response: $bitrixResponse" . PHP_EOL;
 file_put_contents(__DIR__ . '/uae_investor_forward_log.txt', $forwardLog, FILE_APPEND);
 
-// Respond to the sender
-if ($bitrixCode < 400 && $httpCode < 400) {
-    echo "Data processed and forwarded successfully.";
+// Response
+if ($isSuccess) {
+    http_response_code(200);
+    $status = 'success';
 } else {
     http_response_code(500);
-    echo "Processing completed with status - Bitrix: $bitrixCode, LeadConnector: $httpCode";
+    $status = 'error';
 }
+
+echo json_encode([
+    'status' => $status,
+    'bitrix_status' => $bitrixCode,
+    'bitrix_response' => $bitrixResult,
+    'leadconnector' => $httpCode
+]);

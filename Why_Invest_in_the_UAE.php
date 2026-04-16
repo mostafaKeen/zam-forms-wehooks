@@ -80,8 +80,23 @@ $bitrixCode = curl_getinfo($chBitrix, CURLINFO_HTTP_CODE);
 curl_close($chBitrix);
 
 // 4. Log Results
-$logStatus = date('[Y-m-d H:i:s] ') . "Bitrix Status: $bitrixCode | Assigned To: 1";
+$bitrixResult = json_decode($bitrixResponse, true);
+$isSuccess = ($bitrixCode < 400 && (isset($bitrixResult['result']) || isset($bitrixResult['id'])));
+
+$logStatus = date('[Y-m-d H:i:s] ') . "Bitrix: " . ($isSuccess ? "SUCCESS" : "FAILED") . " | Response: $bitrixResponse";
 file_put_contents(__DIR__ . '/Why_Invest_in_the_UAE_forward_log.txt', $logStatus . PHP_EOL, FILE_APPEND);
 
-// Respond to the sender
-echo "Data received and processed successfully.";
+// Response
+if ($isSuccess) {
+    http_response_code(200);
+    $status = 'success';
+} else {
+    http_response_code(500);
+    $status = 'error';
+}
+
+echo json_encode([
+    'status' => $status,
+    'bitrix_status' => $bitrixCode,
+    'bitrix_response' => $bitrixResult
+]);
