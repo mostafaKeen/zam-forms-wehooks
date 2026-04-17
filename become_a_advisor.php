@@ -9,137 +9,122 @@
 // 1. Capture Data
 $rawData = file_get_contents('php://input');
 
+// Log all requests for debugging
+file_put_contents(__DIR__ . '/become_a_advisor_requests.log', date('[Y-m-d H:i:s] ') . "Raw: " . $rawData . " | POST: " . json_encode($_POST) . PHP_EOL, FILE_APPEND);
+
 // Fallback to $_POST if raw input is empty (for standard form-data)
 if (empty($rawData) && !empty($_POST)) {
     $rawData = json_encode($_POST);
 }
 
-if (empty($rawData)) {
-    http_response_code(400);
-    echo "No data received.";
-    exit;
-}
-
 // Parse data for logging
-$data = json_decode($rawData, true);
-if (is_null($data)) {
-    parse_str($rawData, $data);
-}
-
-// 2. Local Logging (Store in become_a_advisor.json)
-$logEntry = json_encode([
-    'timestamp' => date('Y-m-d H:i:s'),
-    'data' => $data ?: $rawData
-]) . PHP_EOL;
-
-file_put_contents(__DIR__ . '/become_a_advisor.json', $logEntry, FILE_APPEND);
-
-// 3. Forward to LeadConnector (DISABLED)
-$lcHttpCode = 'Disabled';
-/*
-$targetUrl = 'https://services.leadconnectorhq.com/hooks/rszL6rWgEgcbEK6oPE0K/webhook-trigger/u3oNMk5jHYu0eCXB1bOK';
-
-$ch = curl_init($targetUrl);
-curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-curl_setopt($ch, CURLOPT_POST, true);
-curl_setopt($ch, CURLOPT_POSTFIELDS, $rawData);
-curl_setopt($ch, CURLOPT_HTTPHEADER, [
-    'Content-Type: application/json'
-]);
-
-$lcResponse = curl_exec($ch);
-$lcHttpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-curl_close($ch);
-*/
-
-// 4. Create Lead in Bitrix24
-$bitrixUrl = 'https://zamprime.bitrix24.com/rest/16/bfumzpzx61oc5s6o/crm.item.add.json';
-
-// Mapping incoming data
-$formFields = $data['data']['fields'] ?? $data['fields'] ?? [];
-$formMeta = $data['data']['meta'] ?? $data['meta'] ?? [];
-
-$name = $formFields['field_d2664cd']['value'] ?? 'Advisor Lead';
-$email = $formFields['field_1cddc76']['value'] ?? '';
-$phone = $formFields['field_ceedb32']['value'] ?? '';
-
-// Collect unmapped fields into meta data string
-$metaLines = [];
-$mappedKeys = ['field_d2664cd', 'field_1cddc76', 'field_ceedb32', 'field_20e883f', 'field_cb7c0d0'];
-
-foreach ($formFields as $id => $field) {
-    if (!in_array($id, $mappedKeys) && !empty($field['value']) && ($field['type'] ?? '') !== 'step' && ($field['type'] ?? '') !== 'html') {
-        $label = $field['title'] ?: $id;
-        $metaLines[] = "$label: {$field['value']}";
+$data = null;
+if (!empty($rawData)) {
+    $data = json_decode($rawData, true);
+    if (is_null($data)) {
+        parse_str($rawData, $data);
     }
 }
 
-// Add system meta
-foreach ($formMeta as $key => $meta) {
-    if (!empty($meta['value'])) {
-        $label = $meta['title'] ?: $key;
-        $metaLines[] = "$label: {$meta['value']}";
-    }
-}
+// 2. Local Logging & Forwarding (Only if data exists)
+if ($data) {
+    // Local Logging (Store in become_a_advisor.json)
+    $logEntry = json_encode([
+        'timestamp' => date('Y-m-d H:i:s'),
+        'data' => $data ?: $rawData
+    ]) . PHP_EOL;
 
-$metaDataString = implode("\n", $metaLines);
+    file_put_contents(__DIR__ . '/become_a_advisor.json', $logEntry, FILE_APPEND);
 
-$bitrixFields = [
-    'entityTypeId' => 1038,
-    'fields' => [
-        'title' => 'Become an Advisor: ' . $name,
-        'sourceId' => 'CALLBACK',            // "Zamprime Website"
-        'assignedById' => 28,               // Sarah
-        'sourceDescription' => trim($metaDataString),
-    ],
-    'params' => ['REGISTER_SONET_EVENT' => 'Y']
-];
+    // 4. Create Lead in Bitrix24
+    $bitrixUrl = 'https://zamprime.bitrix24.com/rest/16/bfumzpzx61oc5s6o/crm.item.add.json';
 
-if (!empty($phone)) {
-    $bitrixFields['fields']['ufCrm8_1772192069412'] = $phone;
-}
-if (!empty($email)) {
-    $bitrixFields['fields']['ufCrm8_1772192889128'] = $email;
-}
+    // Mapping incoming data
+    $formFields = $data['data']['fields'] ?? $data['fields'] ?? [];
+    $formMeta = $data['data']['meta'] ?? $data['meta'] ?? [];
 
-// Additional fields to metaDataString if they are not explicitly mapped
-// We already have logic to collect unmapped fields into $metaDataString
+    $name = $formFields['field_d2664cd']['value'] ?? 'Advisor Lead';
+    $email = $formFields['field_1cddc76']['value'] ?? '';
+    $phone = $formFields['field_ceedb32']['value'] ?? '';
 
-// Handle File Attachments
-$fileFieldsMapping = [
-    'field_20e883f' => 'UF_CRM_8_1772193399534', // map to CV
-    'field_cb7c0d0' => 'UF_CRM_8_1772193207046'  // map to Photo
-];
+    // Collect unmapped fields into meta data string
+    $metaLines = [];
+    $mappedKeys = ['field_d2664cd', 'field_1cddc76', 'field_ceedb32', 'field_20e883f', 'field_cb7c0d0'];
 
-foreach ($fileFieldsMapping as $fId => $crmField) {
-    if (!empty($formFields[$fId]['value']) && filter_var($formFields[$fId]['value'], FILTER_VALIDATE_URL)) {
-        $fileUrl = $formFields[$fId]['value'];
-        $fileContent = @file_get_contents($fileUrl);
-        if ($fileContent) {
-            $fileName = basename(parse_url($fileUrl, PHP_URL_PATH));
-            if (!strpos($fileName, '.')) $fileName .= '.jpg';
-            $bitrixFields['fields'][$crmField] = [
-                $fileName, base64_encode($fileContent)
-            ];
+    foreach ($formFields as $id => $field) {
+        if (!in_array($id, $mappedKeys) && !empty($field['value']) && ($field['type'] ?? '') !== 'step' && ($field['type'] ?? '') !== 'html') {
+            $label = $field['title'] ?: $id;
+            $metaLines[] = "$label: {$field['value']}";
         }
     }
+
+    // Add system meta
+    foreach ($formMeta as $key => $meta) {
+        if (!empty($meta['value'])) {
+            $label = $meta['title'] ?: $key;
+            $metaLines[] = "$label: {$meta['value']}";
+        }
+    }
+
+    $metaDataString = implode("\n", $metaLines);
+
+    $bitrixFields = [
+        'entityTypeId' => 1038,
+        'fields' => [
+            'title' => 'Become an Advisor: ' . $name,
+            'sourceId' => 'CALLBACK',            // "Zamprime Website"
+            'assignedById' => 28,               // Sarah
+            'sourceDescription' => trim($metaDataString),
+        ],
+        'params' => ['REGISTER_SONET_EVENT' => 'Y']
+    ];
+
+    if (!empty($phone)) {
+        $bitrixFields['fields']['ufCrm8_1772192069412'] = $phone;
+    }
+    if (!empty($email)) {
+        $bitrixFields['fields']['ufCrm8_1772192889128'] = $email;
+    }
+
+    // Additional fields to metaDataString if they are not explicitly mapped
+    // We already have logic to collect unmapped fields into $metaDataString
+
+    // Handle File Attachments
+    $fileFieldsMapping = [
+        'field_20e883f' => 'UF_CRM_8_1772193399534', // map to CV
+        'field_cb7c0d0' => 'UF_CRM_8_1772193207046'  // map to Photo
+    ];
+
+    foreach ($fileFieldsMapping as $fId => $crmField) {
+        if (!empty($formFields[$fId]['value']) && filter_var($formFields[$fId]['value'], FILTER_VALIDATE_URL)) {
+            $fileUrl = $formFields[$fId]['value'];
+            $fileContent = @file_get_contents($fileUrl);
+            if ($fileContent) {
+                $fileName = basename(parse_url($fileUrl, PHP_URL_PATH));
+                if (!strpos($fileName, '.')) $fileName .= '.jpg';
+                $bitrixFields['fields'][$crmField] = [
+                    $fileName, base64_encode($fileContent)
+                ];
+            }
+        }
+    }
+
+    $chBitrix = curl_init($bitrixUrl);
+    curl_setopt($chBitrix, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($chBitrix, CURLOPT_POST, true);
+    curl_setopt($chBitrix, CURLOPT_POSTFIELDS, http_build_query($bitrixFields));
+
+    $bitrixResponse = curl_exec($chBitrix);
+    $bitrixHttpCode = curl_getinfo($chBitrix, CURLINFO_HTTP_CODE);
+    curl_close($chBitrix);
+
+    // 5. Log Results
+    $bitrixResult = json_decode($bitrixResponse, true);
+    $isSuccess = ($bitrixHttpCode < 400 && (isset($bitrixResult['result']) || isset($bitrixResult['id'])));
+
+    $logStatus = date('[Y-m-d H:i:s] ') . "LeadConnector: Disabled | Bitrix: " . ($isSuccess ? "SUCCESS" : "FAILED") . " | Response: $bitrixResponse";
+    file_put_contents(__DIR__ . '/become_a_advisor_forward_log.txt', $logStatus . PHP_EOL, FILE_APPEND);
 }
-
-$chBitrix = curl_init($bitrixUrl);
-curl_setopt($chBitrix, CURLOPT_RETURNTRANSFER, true);
-curl_setopt($chBitrix, CURLOPT_POST, true);
-curl_setopt($chBitrix, CURLOPT_POSTFIELDS, http_build_query($bitrixFields));
-
-$bitrixResponse = curl_exec($chBitrix);
-$bitrixHttpCode = curl_getinfo($chBitrix, CURLINFO_HTTP_CODE);
-curl_close($chBitrix);
-
-// 5. Log Results
-$bitrixResult = json_decode($bitrixResponse, true);
-$isSuccess = ($bitrixHttpCode < 400 && (isset($bitrixResult['result']) || isset($bitrixResult['id'])));
-
-$logStatus = date('[Y-m-d H:i:s] ') . "LeadConnector: $lcHttpCode | Bitrix: " . ($isSuccess ? "SUCCESS" : "FAILED") . " | Response: $bitrixResponse";
-file_put_contents(__DIR__ . '/become_a_advisor_forward_log.txt', $logStatus . PHP_EOL, FILE_APPEND);
 
 // Response: Always return 200 success for Elementor
 header('Content-Type: application/json');
